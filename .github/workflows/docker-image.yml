@@ -26,7 +26,7 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
 
     - name: Extract Docker metadata
-      id: meta
+      id: auth
       uses: docker/metadata-action@v5
       with:
         images: |
@@ -41,7 +41,49 @@ jobs:
           context: ./auth-service
           file: ./auth-service/Dockerfile                # change if your Dockerfile is elsewhere
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.auth.outputs.tags }}
+          labels: ${{ steps.auth.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+    - name: Extract Docker metadata
+      id: front
+      uses: docker/metadata-action@v5
+      with:
+        images: |
+          ${{ secrets.DOCKER_USERNAME }}/py3tierfront
+        tags: |
+           type=raw,value=latest,enable={{is_default_branch}}
+           type=sha,format=long,prefix=,enable=true
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v6
+      with:
+          context: ./frontend-ui
+          file: ./frontend-ui/Dockerfile                # change if your Dockerfile is elsewhere
+          push: true
+          tags: ${{ steps.front.outputs.tags }}
+          labels: ${{ steps.front.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+    - name: Extract Docker metadata
+      id: back
+      uses: docker/metadata-action@v5
+      with:
+        images: |
+          ${{ secrets.DOCKER_USERNAME }}/py3tierback
+        tags: |
+           type=raw,value=latest,enable={{is_default_branch}}
+           type=sha,format=long,prefix=,enable=true
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v6
+      with:
+          context: ./backend-api
+          file: ./backend-api/Dockerfile                # change if your Dockerfile is elsewhere
+          push: true
+          tags: ${{ steps.back.outputs.tags }}
+          labels: ${{ steps.back.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
